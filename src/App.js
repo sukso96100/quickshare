@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import logo from "./logo.svg";
 import "./App.css";
 import MonacoEditor from "react-monaco-editor";
-import Peer from "peerjs";
+import firebase from "firebase";
 
 
 const editorStyle = {
@@ -16,33 +16,24 @@ const idDisplayStyle = {
 class App extends Component {
   constructor(props) {
     super(props);
-    this.peer = undefined;
-    this.connection = undefined;
-    this.editor = undefined;
+    this.room;
+    this.lastEditId;
     this.state = {
-      peerId: ""
+      roomId: ""
     };
   }
 
   componentDidMount() {
-    this.peer = new Peer({host: 'sigserver.herokuapp.com', port: 443 , secure: true});
-    // this.peer = new Peer();
-
-    console.log(this.peer);
-    this.peer.on("open", id => {
-      this.setState({
-        peerId: id
-      });
-      console.log("ID: " + id);
-    });
-    this.peer.on('connection', (conn)=>{
-      this.connection = conn;
-      this.connection.on('data', this.onReceiveChanges);
-      this.connection.send(`hello! from ${this.state.peerId}`);
-    });
-    this.peer.on('error', (err)=>{
-      console.log('ERROR', err);
-    });
+   let config = {
+    apiKey: "AIzaSyCE5zOiQWJ-tD1V3PrC8qBAGCq9MKv5U5E",
+    authDomain: "quickshare-13ff5.firebaseapp.com",
+    databaseURL: "https://quickshare-13ff5.firebaseio.com",
+    projectId: "quickshare-13ff5",
+    storageBucket: "quickshare-13ff5.appspot.com",
+    messagingSenderId: "637182425263"
+  };
+  firebase.initializeApp(config);
+  // this.db = firebase.database();
   }
   
   onReceiveChanges(data){
@@ -50,13 +41,32 @@ class App extends Component {
   }
 
   connect(){
-    console.log(this.refs.idinput.value);
-    this.connection = this.peer.connect(this.refs.idinput.value);
-    this.connection.on('open', ()=>{
-      this.connection.on('data', this.onReceiveChanges);
-      this.connection.send(`hello! from ${this.state.peerId}`);
+    let roomkey = this.refs.idinput.value;
+    if(roomkey.length <= 0){
+      this.room = firebase.database().ref('rooms').push();
+      this.room.set({
+        users: [],
+        edits: []
+      });
+    }else{
+      this.room = firebase.database().ref('rooms').child(roomkey);
+    }
+    this.setState({
+      roomId: this.room.key
     });
-    
+    this.room.child('edits').on('child_added', (snapshot)=>{
+      let edit = snapshot.val();
+      let ch = edit.changes[0];
+      console.log(edit);
+      if(snapshot.key !== this.lastEditId){
+        this.refs.monaco.editor.getModel().applyEdits([{
+          forceMoveMarkers: ch.forceMoveMarkers,
+          range: ch.range,
+          text: ch.text
+        }]);
+      }
+    });
+  
   }
 
   editorDidMount(editor, monaco) {
@@ -67,14 +77,15 @@ class App extends Component {
 
   onChange(newValue, event) {
     console.log("onChange", newValue, event);
-    console.log(this.connection);
-    this.connection.send(JSON.stringify(event));
+    let newEdit = this.room.child('edits').push();
+    this.lastEditId = newEdit.key;
+    newEdit.set(event);
   }
   render() {
     return (
       <div className="App" style={{ textAlign: "start" }}>
         <div style={idDisplayStyle}>
-          <p>Connection ID: {this.state.peerId}</p>
+          <p>Connection ID: {this.state.roomId}</p>
           <input type='text' placeholder='id of room to connect' ref='idinput'></input>
           <button onClick={this.connect.bind(this)}>Connect</button>
         </div>
