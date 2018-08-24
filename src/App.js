@@ -13,11 +13,14 @@ const idDisplayStyle = {
   padding: "16px"
 };
 
+
 class App extends Component {
   constructor(props) {
     super(props);
+    this.username = Math.random().toString(36).substring(1);
     this.room;
     this.lastEditId;
+    this.applyingDelta = false;
     this.state = {
       roomId: ""
     };
@@ -54,16 +57,19 @@ class App extends Component {
     this.setState({
       roomId: this.room.key
     });
-    this.room.child('edits').on('child_added', (snapshot)=>{
-      let edit = snapshot.val();
+    this.room.child('edits').on('child_added', async (snapshot)=>{
+      
+      let edit = snapshot.val().event;
       let ch = edit.changes[0];
       console.log(edit);
-      if(snapshot.key !== this.lastEditId){
+      if(this.username != snapshot.val().username){
+        this.applyingDelta = true;
         this.refs.monaco.editor.getModel().applyEdits([{
           forceMoveMarkers: ch.forceMoveMarkers,
           range: ch.range,
-          text: ch.text
+          text: ch.text,
         }]);
+        
       }
     });
   
@@ -75,11 +81,19 @@ class App extends Component {
     // this.mMonaco = monaco;
   }
 
-  onChange(newValue, event) {
+  async onChange(newValue, event) {
+    console.log(newValue);
+    this.value = newValue;
     console.log("onChange", newValue, event);
-    let newEdit = this.room.child('edits').push();
-    this.lastEditId = newEdit.key;
-    newEdit.set(event);
+    let dbval = (await this.room.child('code').once('value')).val();
+    if(!this.applyingDelta){
+      let newEdit = this.room.child('edits').push();
+      newEdit.set({event: event, username: this.username});
+      this.room.child('code').set(newValue);
+    }else{
+      this.applyingDelta = false;
+    }
+    
   }
   render() {
     return (
