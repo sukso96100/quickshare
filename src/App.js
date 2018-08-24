@@ -44,7 +44,7 @@ class App extends Component {
     this.connection.on('open', ()=>{
       this.connection.send(`hello! from ${this.state.peerId}`);
     });
-    this.connection.on('connect', (conn)=>{
+    this.connection.on('connection', (conn)=>{
       conn.on('data', this.onReceiveChanges);
     })
   }
