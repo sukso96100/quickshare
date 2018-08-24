@@ -33,7 +33,9 @@ class App extends Component {
       console.log("ID: " + id);
     });
     this.peer.on('connection', (conn)=>{
-      conn.on('data', this.onReceiveChanges);
+      this.connection = conn;
+      this.connection.on('data', this.onReceiveChanges);
+      this.connection.send(`hello! from ${this.state.peerId}`);
     });
   }
   
@@ -45,6 +47,7 @@ class App extends Component {
     console.log(this.refs.idinput.value);
     this.connection = this.peer.connect(this.refs.idinput.value);
     this.connection.on('open', ()=>{
+      this.connection.on('data', this.onReceiveChanges);
       this.connection.send(`hello! from ${this.state.peerId}`);
     });
     
@@ -58,6 +61,8 @@ class App extends Component {
 
   onChange(newValue, event) {
     console.log("onChange", newValue, event);
+    console.log(this.connection);
+    this.connection.send(JSON.stringify(event));
   }
   render() {
     return (
@@ -75,7 +80,7 @@ class App extends Component {
           theme="vs-dark"
           // value={code}
           // options={options}
-          onChange={this.onChange}
+          onChange={this.onChange.bind(this)}
           editorDidMount={this.editorDidMount}
           ref="monaco"
         />
