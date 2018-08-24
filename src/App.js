@@ -25,7 +25,9 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.peer = new Peer({host: 'quickshare-.herokuapp.com', port: 443 , secure: true});
+    this.peer = new Peer({host: 'sigserver.herokuapp.com', port: 443 , secure: true});
+    // this.peer = new Peer();
+
     console.log(this.peer);
     this.peer.on("open", id => {
       this.setState({
