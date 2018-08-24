@@ -32,6 +32,9 @@ class App extends Component {
       });
       console.log("ID: " + id);
     });
+    this.peer.on('connection', (conn)=>{
+      conn.on('data', this.onReceiveChanges);
+    });
   }
   
   onReceiveChanges(data){
@@ -44,9 +47,7 @@ class App extends Component {
     this.connection.on('open', ()=>{
       this.connection.send(`hello! from ${this.state.peerId}`);
     });
-    this.connection.on('connection', (conn)=>{
-      conn.on('data', this.onReceiveChanges);
-    })
+    
   }
 
   editorDidMount(editor, monaco) {
