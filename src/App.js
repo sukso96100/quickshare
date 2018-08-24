@@ -37,6 +37,9 @@ class App extends Component {
       this.connection.on('data', this.onReceiveChanges);
       this.connection.send(`hello! from ${this.state.peerId}`);
     });
+    this.peer.on('error', (err)=>{
+      console.log('ERROR', err);
+    });
   }
   
   onReceiveChanges(data){
